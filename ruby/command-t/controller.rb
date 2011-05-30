@@ -39,17 +39,27 @@ module CommandT
     end
 
     def show_buffer_finder
-      @path          = VIM::pwd
-      @active_finder = @buffer_finder
-      show
+      if current = @active_finder
+        hide
+        show_buffer_finder unless current.kind_of? CommandT::BufferFinder
+      else
+        @path          = VIM::pwd
+        @active_finder = @buffer_finder
+        show
+      end
     end
 
     def show_file_finder
-      # optional parameter will be desired starting directory, or ""
-      @path             = File.expand_path(::VIM::evaluate('a:arg'), VIM::pwd)
-      @file_finder.path = @path
-      @active_finder    = @file_finder
-      show
+      if current = @active_finder
+        hide
+        show_file_finder unless current.kind_of? CommandT::FileFinder
+      else
+        # optional parameter will be desired starting directory, or ""
+        @path             = File.expand_path(::VIM::evaluate('a:arg'), VIM::pwd)
+        @file_finder.path = @path
+        @active_finder    = @file_finder
+        show
+      end
     rescue Errno::ENOENT
       # probably a problem with the optional parameter
       @match_window.print_no_such_file_or_directory
@@ -57,6 +67,8 @@ module CommandT
 
     def hide
       @match_window.close
+      @active_finder = nil
+
       if VIM::Window.select @initial_window
         if @initial_buffer.number == 0
           # upstream bug: buffer number misreported as 0
