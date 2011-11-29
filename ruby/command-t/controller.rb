@@ -36,28 +36,33 @@ module CommandT
       @prompt = Prompt.new
     end
 
-    def show_buffer_finder
+    def hiding_current klass
       if current = @active_finder
         hide
-        show_buffer_finder unless current.kind_of? CommandT::BufferFinder
+        yield unless current.kind_of? klass
       else
+        yield
+      end
+    end
+
+    def show_buffer_finder
+      hiding_current CommandT::BufferFinder do
         @path          = VIM::pwd
-        @active_finder = @buffer_finder
+        @active_finder = buffer_finder
         show
       end
     end
 
     def show_jump_finder
-      @path          = VIM::pwd
-      @active_finder = jump_finder
-      show
+      hiding_current CommandT::JumpFinder do
+        @path          = VIM::pwd
+        @active_finder = jump_finder
+        show
+      end
     end
 
     def show_file_finder
-      if current = @active_finder
-        hide
-        show_file_finder unless current.kind_of? CommandT::FileFinder
-      else
+      hiding_current CommandT::FileFinder do
         # optional parameter will be desired starting directory, or ""
         @path             = File.expand_path(::VIM::evaluate('a:arg'), VIM::pwd)
         @active_finder    = file_finder
